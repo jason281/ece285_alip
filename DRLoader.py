@@ -43,3 +43,48 @@ class DRLoader(Dataset):
 
         return image, target, label,classes
     
+class Syn2Real(Dataset):
+    def __init__(self, back_dir, ori_dir, syn_dir, in_transform=None, target_transform=None):
+        
+        assert os.path.exists(back_dir), back_dir+' not exists'
+        assert os.path.exists(ori_dir), ori_dir+' not exists'
+        assert os.path.exists(syn_dir), syn_dir+' not exists'
+        self.in_transform = in_transform
+        self.target_transform = target_transform
+            
+        self.classes = sorted(os.listdir(ori_dir))
+        ori_im_path, back_im_path, syn_im_path, classes = [], [], [], []
+        for c in tqdm(self.classes):
+            for obj in sorted(os.listdir(ori_dir+'/'+c)):
+                if obj[0] == '.':
+                    continue
+                ann, ext = os.path.splitext(obj)[0], os.path.splitext(obj)[1]
+                ori_im_path.append(os.path.join(ori_dir,c,obj))
+                back_im_path.append(os.path.join(back_dir,c,ann+'.png'))
+                syn_im_path.append(os.path.join(syn_dir,c,ann+'.png'))
+                
+                classes.append(c)
+                
+        self.ori_im_path = np.array(ori_im_path)
+        self.back_im_path = np.array(back_im_path)
+        self.syn_im_path = np.array(syn_im_path)
+        self.c = np.array(classes)
+        
+    def __len__(self):
+        return len(self.images)
+        
+    def __getitem__(self, idx):
+        
+        background = Image.open(self.back_im_path[idx])
+        synthetic = Image.open(self.syn_im_path[idx])
+        original = Image.open(self.ori_im_path[idx])
+        
+        input_image = background.paste(synthetic)
+        classes = self.c[idx]
+        if self.in_transform:
+            image = self.in_transform(input_image)
+        if self.target_transform:
+            target = self.target_transform(original)
+
+        return image, target
+    
