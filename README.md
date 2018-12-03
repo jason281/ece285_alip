@@ -9,6 +9,7 @@ https://www.overleaf.com/2891186856zbwqrpsxxmgd
 ## Render the Synthetic Image
 Install Belender first.  
 > https://www.blender.org/download/  
+
 Run the "blender_renderer.ipynb"
 
 ## Segementing the foreground and background Images
