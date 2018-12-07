@@ -35,6 +35,8 @@ import torchvision.transforms as transforms
 from Arch import *
 from DRLoader import DRLoader
 
+import scipy.misc
+
 parser = argparse.ArgumentParser(description='PyTorch Training')
 parser.add_argument('-e', '--epochs', action='store', default=40, type=int, help='epochs (default: 40)')
 parser.add_argument('--batchSize', action='store', default=8, type=int, help='batch size (default: 8)')
@@ -50,6 +52,7 @@ parser.add_argument('--use_lsgan', action='store_true', default=False, help='Fla
 parser.add_argument('--gpu_num', action='store', default=0, type=int, help='gpu_num (default: 0)')
 parser.add_argument("--D_net", default='NLayer', const='Nlayer',nargs='?', choices=['Nlayer', 'Pix'], help="Discriminator  model(default:Nlayer)")
 parser.add_argument("--target", default='segmented', const='segmented',nargs='?', choices=['segmented', 'full'], help="Train with segmentation")
+parser.add_argument("--Loader", default='DRLoader', const='DRLoader',nargs='?', choices=['DRLoader', 'Syn2Real'], help="Loader syn image with/without real background")
 arg = parser.parse_args()
 
 def main():
@@ -58,8 +61,11 @@ def main():
         os.makedirs('model')
     if not os.path.exists('log'):
         os.makedirs('log')
-    
-    model_path = 'model/'+arg.D_net+'_'+arg.target+'.pt'
+    if not os.path.exists('gen_images'):
+        os.makedirs('gen_images')
+        
+    Discriminator_path = 'model/'+arg.D_net+'_'+arg.target+'_'+arg.Loader+'.pt'
+    Generator_path = 'model/Generator_'+arg.target+'_'+arg.Loader+'.pt'
 
     ####################
     ### Setup Logger ###
@@ -85,12 +91,12 @@ def main():
     
     input_transform = {
         'train': transforms.Compose([
-            transforms.RandomResizedCrop(arg.im_H, scale=(0.6,1.0)),
+            transforms.Resize((arg.im_H,arg.im_W)),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'test': transforms.Compose([
-            transforms.Resize(arg.im_H),
+            transforms.Resize((arg.im_H,arg.im_W)),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
@@ -98,13 +104,13 @@ def main():
     
     target_transform = {
         'train': transforms.Compose([
-            transforms.RandomResizedCrop(arg.im_H, scale=(0.6,1.0)),
-            transforms.ToTensor(),
+            transforms.Resize((arg.im_H,arg.im_W)),
+            transforms.ToTensor()
             #transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'test': transforms.Compose([
-            transforms.Resize(arg.im_H),
-            transforms.ToTensor(),
+            transforms.Resize((arg.im_H,arg.im_W)),
+            transforms.ToTensor()
             #transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
     }
@@ -124,15 +130,21 @@ def main():
     train_path = root+'/render_split/train'
     test_path = root+'/render_split/test'
     
-    train_dataset = DRLoader(train_path, train_target_path, in_transform=input_transform['train'] \
-                             ,target_transform=target_transform['train'])
-    test_dataset = DRLoader(test_path,test_target_path, in_transform=input_transform['test'] \
-                            ,target_transform=target_transform['test'])
-    
+    if arg.Loader == 'DRLoader':
+        train_dataset = DRLoader(train_path, train_target_path, in_transform=input_transform['train'] \
+                                 ,target_transform=target_transform['train'])
+        test_dataset = DRLoader(test_path,test_target_path, in_transform=input_transform['test'] \
+                                ,target_transform=target_transform['test'])
+    elif arg.Loader == 'Syn2Real':
+        train_dataset = Syn2Real(train_path, train_target_path, in_transform=input_transform['train'] \
+                                 ,target_transform=target_transform['train'])
+        test_dataset = Syn2Real(test_path,test_target_path, in_transform=input_transform['test'] \
+                                ,target_transform=target_transform['test'])
+
     dataLoader={}
     dataLoader['train'],dataLoader['test'] = [], []
     dataLoader['train'] = DataLoader(train_dataset, batch_size=arg.batchSize, shuffle=True, num_workers=4)
-    dataLoader['test'] = DataLoader(test_dataset, batch_size=arg.batchSize, shuffle=True, num_workers=4)
+    dataLoader['test'] = DataLoader(test_dataset, batch_size=1, shuffle=True, num_workers=4)
     
     train_size, test_size = train_dataset.__len__(), test_dataset.__len__()
     
@@ -140,7 +152,7 @@ def main():
     ### Load Models ###
     ###################
     
-    Generator = UNet(input_nc=1)
+    Generator = UNet(input_nc=3)
     if arg.D_net == 'NLayer':
         Discriminator = NLayerDiscriminator(input_nc=3)
     elif arg.D_net == 'Pix':
@@ -167,15 +179,6 @@ def main():
     ### Training ###
     ################
     
-    if arg.useGPU_f:
-        temp = Variable(torch.Tensor(arg.batchSize,3,arg.im_H,arg.im_W).fill_(0.1).cuda(),requires_grad=False)
-    else:
-        temp = Variable(torch.Tensor(arg.batchSize,3,arg.im_H,arg.im_W).fill_(0.1),requires_grad=False)
-    temp = Discriminator(temp)
-    patch = temp.data.shape
-    v = torch.rand(*patch)*0.1
-    f = 1-v
-    
     print("Start Training")
     logger.info("Start Training")
     epochs = arg.epochs if arg.train_f else 0
@@ -187,14 +190,11 @@ def main():
         Generator.train()
         Discriminator.train()
         
-        for batchIndex,x in enumerate(dataLoader['train']):
-            img,target,label,class_ = x
-            img,target=img[:,0:3],target[:,0]
+        
+        for batchIndex,(img,target) in enumerate(dataLoader['train']):
             if arg.useGPU_f:
-                valid, fake = Variable(v.cuda(), requires_grad=False), Variable(f.cuda(), requires_grad=False)
-                img,target, = Variable(img.cuda(),requires_grad=True), Variable(target.cuda(),requires_grad=False)
+                img,target = Variable(img.cuda(),requires_grad=True), Variable(target.cuda(),requires_grad=False)
             else:
-                valid, fake = Variable(v, requires_grad=False), Variable(f, requires_grad=False)
                 img,target = Variable(img,requires_grad=True),Variable(target,requires_grad=False)
             
             # ---------------
@@ -204,9 +204,18 @@ def main():
             
             gen_img = Generator(img)
             pred_fake = Discriminator(img)
+            
+            patch = pred_fake.shape
+            v = torch.rand(*patch)*0.1
+            f = 1-v
+            if arg.useGPU_f:
+                valid, fake = Variable(v.cuda(), requires_grad=False), Variable(f.cuda(), requires_grad=False)
+            else:
+                valid, fake = Variable(v, requires_grad=False), Variable(f, requires_grad=False)            
+            
             loss_GAN = criterion_GAN(pred_fake,valid)
             if gen_img.data.shape[1]!=target.data.shape[1]:
-                print('L1 ERROR: ',batchIndex,label,class_)
+                print('L1 ERROR')
             loss_Pix = criterion_L1(gen_img,target)
             
             loss_G = loss_GAN + loss_Pix*arg.lambda_pixel
@@ -242,43 +251,42 @@ def main():
         Discriminator.eval()
         loss_G, loss_D = 0.0, 0.0
         
-        for batchIndex,(img,target,label) in enumerate(dataLoader['test']):
-            img=img[:,0:3]
+        for batchIndex,(img,target) in enumerate(dataLoader['test']):
             if arg.useGPU_f:
-                valid = Variable(valid.cuda(), requires_grad=False)
-                fake = Variable(fake.cuda(), requires_grad=False)
-                
-                img,target,label = Variable(img.cuda(),requires_grad=True), Variable(target.cuda(),requires_grad=False), \
-                Variable(label.cuda(),requires_grad=False)
+                img,target = Variable(img.cuda(),requires_grad=True), Variable(target.cuda(),requires_grad=False)
             else:
-                valid = Variable(valid, requires_grad=False)
-                fake = Variable(fake, requires_grad=False)
-
-                img,target,label = Variable(img,requires_grad=True),Variable(target,requires_grad=False), \
-                Variable(label,requires_grad=False)
+                img,target = Variable(img,requires_grad=True),Variable(target,requires_grad=False)
             
             optimizer_G.zero_grad()
-            
-            gen_img = Generator(img)
-            pred_fake = Discriminator(img)
-            loss_GAN = criterion_GAN(pred_fake,vaild)
-            loss_Pix = criterion_L1(gen_img,target)
-            
-            loss_G += loss_GAN + arg.alpha*loss_Pix
-
             optimizer_D.zero_grad()
             
-            pred_real = Discriminator(target)
-            loss_real = criterion_GAN(pred_real,valid)
+            gen_img = Generator(img)
+            torch.save(Generator.state_dict(), Generator_path)
+            torch.save(Discriminator.state_dict(), Discriminator_path)
             
-            pred_fake = Discriminator(gen_img.detach())
-            loss_fake = criterion_GAN(pred_fake,fake)
+            scipy.misc.imsave('gen_images/gen_img_'+str(epoch)+'_'+str(batchIndex)+'.jpg',np.transpose(np.squeeze(gen_img.data.cpu().numpy()),[1,2,0]))
+            if batchIndex == 3:
+                break
+                
+    if os.path.isfile(Generator_path):
+        Generator.load_state_dict(torch.load(Generator_path, map_location=lambda storage, loc: storage))
+    Generator.eval()
+    Discriminator.eval()
+    loss_G, loss_D = 0.0, 0.0
+        
+    for batchIndex,(img,target) in enumerate(dataLoader['test']):
+        if arg.useGPU_f:
+            img,target = Variable(img.cuda(),requires_grad=True), Variable(target.cuda(),requires_grad=False)
+        else:
+            img,target = Variable(img,requires_grad=True),Variable(target,requires_grad=False)
             
-            loss_D += 0.5*(loss_real+loss_fake)
-            
-        logger.info('Validation: G_Loss:{}, D_Loss:{}'.format(loss_G.data[0]/test_size,loss_D.data[0]/test_size))
-        torch.save(model.state_dict(), model_path)
-
+        optimizer_G.zero_grad()
+        optimizer_D.zero_grad()
+        
+        gen_img = Generator(img)
+        scipy.misc.imsave('gen_images/gen_img_test.jpg', np.transpose(np.squeeze(gen_img.data.cpu().numpy()),[1,2,0]))
+        if batchIndex == 1:
+            break
 
 
 if __name__ == "__main__":

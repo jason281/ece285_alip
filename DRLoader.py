@@ -16,11 +16,11 @@ class DRLoader(Dataset):
         self.classes = sorted(os.listdir(input_dir))
         im_path, target_path, label, classes = [], [], [], []
         for index,c in enumerate(tqdm(sorted(os.listdir(input_dir)))):
-            for obj in sorted(os.listdir(input_dir+'/'+c)):
+            for obj in sorted(os.listdir(target_dir+'/'+c)):
                 ann, ext = os.path.splitext(obj)[0], os.path.splitext(obj)[1]
                 if ext not in ['.jpeg','.png']:
                     continue
-                im_path.append(os.path.join(input_dir,c,obj))
+                im_path.append(os.path.join(input_dir,c,ann+'.png'))
                 target_path.append(os.path.join(target_dir,c,obj))
                 classes.append(c)
                 label.append(int(ann))
@@ -34,14 +34,16 @@ class DRLoader(Dataset):
         
         image = Image.open(self.images[idx])
         target = Image.open(self.targets[idx])
+        image = image.convert(mode='L').convert(mode='RGB')
+        target = target.convert(mode='RGB')
         label = self.labels[idx]
         classes = self.c[idx]
         if self.in_transform:
             image = self.in_transform(image)
         if self.target_transform:
             target = self.target_transform(target)
-
-        return image, target, label,classes
+        
+        return image, target
     
 class Syn2Real(Dataset):
     def __init__(self, back_dir, ori_dir, syn_dir, in_transform=None, target_transform=None):
@@ -71,20 +73,27 @@ class Syn2Real(Dataset):
         self.c = np.array(classes)
         
     def __len__(self):
-        return len(self.images)
+        return len(self.ori_im_path)
         
     def __getitem__(self, idx):
         
         background = Image.open(self.back_im_path[idx])
         synthetic = Image.open(self.syn_im_path[idx])
         original = Image.open(self.ori_im_path[idx])
+        background = background.convert(mode='RGB')
+        synthetic = synthetic.convert(mode='L').convert(mode='RGB')
+        original = original.convert(mode='RGB')
         
-        input_image = background.paste(synthetic)
+        input_image = Image.fromarray(np.array(synthetic)+np.array(background))
         classes = self.c[idx]
         if self.in_transform:
             image = self.in_transform(input_image)
+        else:
+            image = input_image
         if self.target_transform:
             target = self.target_transform(original)
+        else:
+            target = original
 
         return image, target
     
