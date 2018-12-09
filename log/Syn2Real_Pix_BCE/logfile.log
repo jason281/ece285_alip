@@ -1,0 +1,27 @@
+2018-12-09 14:21:34,517 - netlog - INFO - ================================================
+2018-12-09 14:21:34,517 - netlog - INFO - Generator Learning Rate: 0.001
+2018-12-09 14:21:34,517 - netlog - INFO - Discriminator Learning Rate: 0.001
+2018-12-09 14:21:34,517 - netlog - INFO - Discriminator: Pix
+2018-12-09 14:21:34,517 - netlog - INFO - Loader:Syn2Real
+2018-12-09 14:21:34,517 - netlog - INFO - Nbr of Epochs: 100
+2018-12-09 14:21:38,052 - netlog - INFO - Start Training
+2018-12-09 14:21:46,305 - netlog - INFO - epoch:0, index:0, G_Loss:28.0282859802, D_Loss:0.700484633446
+2018-12-09 14:21:57,578 - netlog - INFO - epoch:0, index:10, G_Loss:24.7622432709, D_Loss:0.676380097866
+2018-12-09 14:22:10,968 - netlog - INFO - epoch:0, index:20, G_Loss:17.4738273621, D_Loss:0.66917014122
+2018-12-09 14:22:27,130 - netlog - INFO - epoch:0, index:30, G_Loss:22.9996414185, D_Loss:0.646663546562
+2018-12-09 14:22:41,533 - netlog - INFO - epoch:0, index:40, G_Loss:16.4067821503, D_Loss:0.652906298637
+2018-12-09 14:22:56,892 - netlog - INFO - epoch:0, index:50, G_Loss:15.3425779343, D_Loss:0.662628054619
+2018-12-09 14:23:14,738 - netlog - INFO - epoch:0, index:60, G_Loss:14.8677902222, D_Loss:0.645277500153
+2018-12-09 14:23:26,828 - netlog - INFO - epoch:0, index:70, G_Loss:14.6902751923, D_Loss:0.650884568691
+2018-12-09 14:23:41,908 - netlog - INFO - epoch:0, index:80, G_Loss:12.8308486938, D_Loss:0.644300937653
+2018-12-09 14:23:54,695 - netlog - INFO - epoch:0, index:90, G_Loss:13.9893226624, D_Loss:0.635232746601
+2018-12-09 14:24:07,756 - netlog - INFO - epoch:0, index:100, G_Loss:12.4318494797, D_Loss:0.650995254517
+2018-12-09 14:24:19,612 - netlog - INFO - epoch:0, index:110, G_Loss:12.0073165894, D_Loss:0.627006351948
+2018-12-09 14:24:34,333 - netlog - INFO - epoch:0, index:120, G_Loss:13.207690239, D_Loss:0.643507838249
+2018-12-09 14:24:43,705 - netlog - INFO - epoch:0, index:130, G_Loss:11.1243171692, D_Loss:0.638941466808
+2018-12-09 14:24:59,407 - netlog - INFO - epoch:0, index:140, G_Loss:11.8272199631, D_Loss:0.642819046974
+2018-12-09 14:25:16,636 - netlog - INFO - epoch:0, index:150, G_Loss:17.7841835022, D_Loss:0.648246407509
+2018-12-09 14:25:43,799 - netlog - INFO - epoch:0, index:160, G_Loss:10.6390571594, D_Loss:0.646211922169
+2018-12-09 14:26:00,553 - netlog - INFO - epoch:0, index:170, G_Loss:12.4486351013, D_Loss:0.643699645996
+2018-12-09 14:26:08,626 - netlog - INFO - epoch:0, index:180, G_Loss:10.4839687347, D_Loss:0.645141005516
+2018-12-09 14:26:29,736 - netlog - INFO - epoch:0, index:190, G_Loss:11.3483972549, D_Loss:0.636905550957

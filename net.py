@@ -43,29 +43,35 @@ parser.add_argument('--batchSize', action='store', default=8, type=int, help='ba
 parser.add_argument('--im_H', action='store', default=256, type=int, help='image height (default: 256)')
 parser.add_argument('--im_W', action='store', default=256, type=int, help='image wigth (default: 256)')
 parser.add_argument('--lambda_pixel', action='store', default=100.0, type=float, help='pixed loss weight (default: 100.0)')
-parser.add_argument('--lr_G', '--generator-learning-rate', action='store', default=0.0001, type=float, help='generator learning rate (default: 0.01)')
-parser.add_argument('--lr_D', '--discriminator-learning-rate', action='store', default=0.0001, type=float, help='discriminator learning rate (default: 0.01)')
+parser.add_argument('--lr_G', '--generator-learning-rate', action='store', default=0.001, type=float, help='generator learning rate (default: 0.001)')
+parser.add_argument('--lr_D', '--discriminator-learning-rate', action='store', default=0.001, type=float, help='discriminator learning rate (default: 0.001)')
 parser.add_argument('--momentum', '--momentum', action='store', default=0.9, type=float, help='learning rate (default: 0.9)')
 parser.add_argument('--train_f', action='store_false', default=True, help='Flag to train (STORE_FALSE)(default: True)')
 parser.add_argument('--useGPU_f', action='store_false', default=True, help='Flag to use GPU (STORE_FALSE)(default: True)')
-parser.add_argument('--use_lsgan', action='store_true', default=False, help='Flag to use BCE loss (default: False)')
 parser.add_argument('--gpu_num', action='store', default=0, type=int, help='gpu_num (default: 0)')
+parser.add_argument("--GAN_Loss", default='MSE', const='MSE',nargs='?', choices=['MSE', 'BCE'], help="GAN Loss (default:MSE)")
 parser.add_argument("--D_net", default='NLayer', const='Nlayer',nargs='?', choices=['Nlayer', 'Pix'], help="Discriminator  model(default:Nlayer)")
 parser.add_argument("--target", default='segmented', const='segmented',nargs='?', choices=['segmented', 'full'], help="Train with segmentation")
 parser.add_argument("--Loader", default='DRLoader', const='DRLoader',nargs='?', choices=['DRLoader', 'Syn2Real'], help="load synth image with/without real background")
 arg = parser.parse_args()
 
 def main():
+    
+    if arg.useGPU_f:
+        torch.cuda.set_device(arg.gpu_num)
+        torch.cuda.current_device()
+    
+    if arg.Loader=='Syn2Real':
+        log_root = 'log/'+arg.Loader+'_'+arg.D_net+'_'+arg.GAN_Loss
+    elif arg.Loader == 'DRLoader':
+        log_root = 'log/'+arg.Loader+'_'+arg.D_net+'_'+arg.target
 
-    if not os.path.exists('log/'+arg.D_net+'_'+arg.Loader):
-        os.makedirs('log/'+arg.D_net+'_'+arg.Loader)
-    if not os.path.exists('log/'+arg.D_net+'_'+arg.Loader+'/gen_images'):
-        os.makedirs('log/'+arg.D_net+'_'+arg.Loader+'/gen_images')
-    if not os.path.exists('log/'+arg.D_net+'_'+arg.Loader+'/model'):
-        os.makedirs('log/'+arg.D_net+'_'+arg.Loader+'/model')
-        
-    Discriminator_path = 'log/'+arg.D_net+'_'+arg.Loader+'/model/'+arg.D_net+'_'+'_'+arg.Loader+'.pt'
-    Generator_path = 'log/'+arg.D_net+'_'+arg.Loader+'/model/Generator_'+'_'+arg.Loader+'.pt'
+    if not os.path.exists(log_root):
+        os.makedirs(log_root)
+    if not os.path.exists(log_root+'/gen_images'):
+        os.makedirs(log_root+'/gen_images')
+    if not os.path.exists(log_root+'/model'):
+        os.makedirs(log_root+'/model')
 
     ####################
     ### Setup Logger ###
@@ -73,7 +79,7 @@ def main():
     
     logger = logging.getLogger('netlog')
     logger.setLevel(logging.INFO)
-    ch = logging.FileHandler('log/'+arg.D_net+'_'+arg.Loader+'/logfile_'+arg.D_net+'_.log')
+    ch = logging.FileHandler(log_root+'/logfile.log')
     ch.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     ch.setFormatter(formatter)
@@ -82,7 +88,7 @@ def main():
     logger.info("Generator Learning Rate: {}".format(arg.lr_G))
     logger.info("Discriminator Learning Rate: {}".format(arg.lr_D))
     logger.info("Discriminator: "+ arg.D_net)
-    logger.info("target images:" + arg.target)
+    logger.info("Loader:" + arg.Loader)
     logger.info("Nbr of Epochs: {}".format(arg.epochs))
     
     #################
@@ -158,10 +164,10 @@ def main():
     
     criterion_L1 = nn.L1Loss()
     sigmoid_f=False
-    if arg.use_lsgan:
+    if arg.GAN_Loss == 'BCE':
         criterion_GAN = nn.BCEWithLogitsLoss()
         sigmoid=True
-    else:
+    elif arg.GAN_Loss == 'MSE':
         criterion_GAN = nn.MSELoss()
     
     ###################
@@ -193,6 +199,9 @@ def main():
     correct_label, correct_pose , ave_loss = 0, 0, 0
     
     for epoch in xrange(epochs):
+        Discriminator_path = log_root+'/model/'+arg.D_net+'_'+str(epoch)+'.pt'
+        Generator_path = log_root+'/model/Generator_'+str(epoch)+'.pt'
+        
         Generator.train()
         Discriminator.train()
         
@@ -249,6 +258,8 @@ def main():
         ##################
         ### Validation ###
         ##################
+        torch.save(Generator.state_dict(), Generator_path)
+        torch.save(Discriminator.state_dict(), Discriminator_path)
         
         print("Start Validation")
         logger.info("Start Validation")
@@ -267,13 +278,14 @@ def main():
             optimizer_D.zero_grad()
             
             gen_img = Generator(img)
-            torch.save(Generator.state_dict(), Generator_path)
-            torch.save(Discriminator.state_dict(), Discriminator_path)
             
-            scipy.misc.imsave('log/'+arg.D_net+'_'+arg.Loader+'/gen_images/gen_img_'+str(epoch)+'_'+str(batchIndex)+'.jpg',np.transpose(np.squeeze(gen_img.data.cpu().numpy()),[1,2,0]))
+            scipy.misc.imsave(log_root+'/gen_images/gen_img_'+str(epoch)+'_'+str(batchIndex)+'.jpg',\
+                              np.transpose(np.squeeze(gen_img.data.cpu().numpy()),[1,2,0]))
             if batchIndex == 3:
                 break
                 
+    best_model = 10
+    Generator_path = log_root+'/model/Generator_'+str(best_model)+'.pt'
     if os.path.isfile(Generator_path):
         Generator.load_state_dict(torch.load(Generator_path, map_location=lambda storage, loc: storage))
     Generator.eval()
@@ -290,7 +302,7 @@ def main():
         optimizer_D.zero_grad()
         
         gen_img = Generator(img)
-        scipy.misc.imsave('log/'+arg.D_net+'_'+arg.Loader+'/gen_images/gen_img_test.jpg', np.transpose(np.squeeze(gen_img.data.cpu().numpy()),[1,2,0]))
+        scipy.misc.imsave(log_root+'/gen_images/gen_img_test.jpg', np.transpose(np.squeeze(gen_img.data.cpu().numpy()),[1,2,0]))
         if batchIndex == 1:
             break
 

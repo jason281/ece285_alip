@@ -1,0 +1,14 @@
+2018-12-09 14:24:57,148 - netlog - INFO - ================================================
+2018-12-09 14:24:57,149 - netlog - INFO - Generator Learning Rate: 0.001
+2018-12-09 14:24:57,149 - netlog - INFO - Discriminator Learning Rate: 0.001
+2018-12-09 14:24:57,149 - netlog - INFO - Discriminator: NLayer
+2018-12-09 14:24:57,149 - netlog - INFO - Loader:Syn2Real
+2018-12-09 14:24:57,149 - netlog - INFO - Nbr of Epochs: 100
+2018-12-09 14:25:01,098 - netlog - INFO - Start Training
+2018-12-09 14:25:08,163 - netlog - INFO - epoch:0, index:0, G_Loss:28.849237442, D_Loss:0.696554303169
+2018-12-09 14:25:17,538 - netlog - INFO - epoch:0, index:10, G_Loss:21.7575359344, D_Loss:0.62195110321
+2018-12-09 14:25:31,121 - netlog - INFO - epoch:0, index:20, G_Loss:23.9795417786, D_Loss:0.529707551003
+2018-12-09 14:25:41,434 - netlog - INFO - epoch:0, index:30, G_Loss:19.5362548828, D_Loss:0.374228000641
+2018-12-09 14:25:53,602 - netlog - INFO - epoch:0, index:40, G_Loss:17.5772075653, D_Loss:0.277949810028
+2018-12-09 14:26:08,760 - netlog - INFO - epoch:0, index:50, G_Loss:15.5414428711, D_Loss:0.488054871559
+2018-12-09 14:26:23,314 - netlog - INFO - epoch:0, index:60, G_Loss:13.3539619446, D_Loss:0.260670423508
