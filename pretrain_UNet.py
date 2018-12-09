@@ -33,7 +33,7 @@ from torch.autograd import Variable
 import torchvision.transforms as transforms
 
 from Arch import *
-from DRLoader import DRLoader, Syn2Real
+from DRLoader import DRLoader
 
 import scipy.misc
 
@@ -42,30 +42,26 @@ parser.add_argument('-e', '--epochs', action='store', default=40, type=int, help
 parser.add_argument('--batchSize', action='store', default=8, type=int, help='batch size (default: 8)')
 parser.add_argument('--im_H', action='store', default=256, type=int, help='image height (default: 256)')
 parser.add_argument('--im_W', action='store', default=256, type=int, help='image wigth (default: 256)')
-parser.add_argument('--lambda_pixel', action='store', default=100.0, type=float, help='pixed loss weight (default: 100.0)')
-parser.add_argument('--lr_G', '--generator-learning-rate', action='store', default=0.0001, type=float, help='generator learning rate (default: 0.01)')
-parser.add_argument('--lr_D', '--discriminator-learning-rate', action='store', default=0.0001, type=float, help='discriminator learning rate (default: 0.01)')
+parser.add_argument('--lambda_pixel', action='store', default=100.0, type=float, help='loss weight (default: 1.0)')
+parser.add_argument('--lr', '--learning-rate', action='store', default=0.001, type=float, help='learning rate (default: 0.001)')
 parser.add_argument('--momentum', '--momentum', action='store', default=0.9, type=float, help='learning rate (default: 0.9)')
 parser.add_argument('--train_f', action='store_false', default=True, help='Flag to train (STORE_FALSE)(default: True)')
 parser.add_argument('--useGPU_f', action='store_false', default=True, help='Flag to use GPU (STORE_FALSE)(default: True)')
 parser.add_argument('--use_lsgan', action='store_true', default=False, help='Flag to use BCE loss (default: False)')
 parser.add_argument('--gpu_num', action='store', default=0, type=int, help='gpu_num (default: 0)')
-parser.add_argument("--D_net", default='NLayer', const='Nlayer',nargs='?', choices=['Nlayer', 'Pix'], help="Discriminator  model(default:Nlayer)")
 parser.add_argument("--target", default='segmented', const='segmented',nargs='?', choices=['segmented', 'full'], help="Train with segmentation")
-parser.add_argument("--Loader", default='DRLoader', const='DRLoader',nargs='?', choices=['DRLoader', 'Syn2Real'], help="load synth image with/without real background")
 arg = parser.parse_args()
 
 def main():
 
-    if not os.path.exists('log/'+arg.D_net+'_'+arg.Loader):
-        os.makedirs('log/'+arg.D_net+'_'+arg.Loader)
-    if not os.path.exists('log/'+arg.D_net+'_'+arg.Loader+'/gen_images'):
-        os.makedirs('log/'+arg.D_net+'_'+arg.Loader+'/gen_images')
-    if not os.path.exists('log/'+arg.D_net+'_'+arg.Loader+'/model'):
-        os.makedirs('log/'+arg.D_net+'_'+arg.Loader+'/model')
+    if not os.path.exists('model'):
+        os.makedirs('model')
+    if not os.path.exists('log/UNet'):
+        os.makedirs('log/UNet')
+    if not os.path.exists('log/UNet/gen_images'):
+        os.makedirs('log/UNet/gen_images')
         
-    Discriminator_path = 'log/'+arg.D_net+'_'+arg.Loader+'/model/'+arg.D_net+'_'+'_'+arg.Loader+'.pt'
-    Generator_path = 'log/'+arg.D_net+'_'+arg.Loader+'/model/Generator_'+'_'+arg.Loader+'.pt'
+    Generator_path = 'model/UNet.pt'
 
     ####################
     ### Setup Logger ###
@@ -73,16 +69,13 @@ def main():
     
     logger = logging.getLogger('netlog')
     logger.setLevel(logging.INFO)
-    ch = logging.FileHandler('log/'+arg.D_net+'_'+arg.Loader+'/logfile_'+arg.D_net+'_.log')
+    ch = logging.FileHandler('log/UNet/logfile_UNet_.log')
     ch.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     ch.setFormatter(formatter)
     logger.addHandler(ch)
     logger.info("================================================")
-    logger.info("Generator Learning Rate: {}".format(arg.lr_G))
-    logger.info("Discriminator Learning Rate: {}".format(arg.lr_D))
-    logger.info("Discriminator: "+ arg.D_net)
-    logger.info("target images:" + arg.target)
+    logger.info("Learning Rate: {}".format(arg.lr))
     logger.info("Nbr of Epochs: {}".format(arg.epochs))
     
     #################
@@ -134,15 +127,9 @@ def main():
     train_path = root+'/render_split/train'
     test_path = root+'/render_split/test'
     
-    if arg.Loader == 'DRLoader':
-        train_dataset = DRLoader(syn_path+'/train', train_foreground, in_transform=input_transform['train'] \
+    train_dataset = DRLoader(syn_path+'/train', train_foreground, in_transform=input_transform['train'] \
                                  ,target_transform=target_transform['train'])
-        test_dataset = DRLoader(syn_path+'/test',test_foreground, in_transform=input_transform['test'] \
-                                ,target_transform=target_transform['test'])
-    elif arg.Loader == 'Syn2Real':
-        train_dataset = Syn2Real(back_path+'/train',img_path+'/train', syn_path+'/train', in_transform=input_transform['train'] \
-                                 ,target_transform=target_transform['train'])
-        test_dataset = Syn2Real(back_path+'/train',img_path+'/train', syn_path+'/train', in_transform=input_transform['test'] \
+    test_dataset = DRLoader(syn_path+'/test',test_foreground, in_transform=input_transform['test'] \
                                 ,target_transform=target_transform['test'])
 
     dataLoader={}
@@ -152,34 +139,22 @@ def main():
     
     train_size, test_size = train_dataset.__len__(), test_dataset.__len__()
     
-    #####################
-    ### Loss Function ###
-    #####################
-    
-    criterion_L1 = nn.L1Loss()
-    sigmoid_f=False
-    if arg.use_lsgan:
-        criterion_GAN = nn.BCEWithLogitsLoss()
-        sigmoid=True
-    else:
-        criterion_GAN = nn.MSELoss()
-    
     ###################
     ### Load Models ###
     ###################
     
-    Generator = UNet(input_nc=3)
-    if arg.D_net == 'NLayer':
-        Discriminator = NLayerDiscriminator(input_nc=3,use_sigmoid=sigmoid_f)
-    elif arg.D_net == 'Pix':
-        Discriminator = PixelDiscriminator(input_nc=3,use_sigmoid=sigmoid_f)
-    
+    Generator = UNet(input_nc=3)  
     if arg.useGPU_f:
-        Discriminator.cuda()
         Generator.cuda()
 
-    optimizer_G = optim.Adam(Generator.parameters(),lr=arg.lr_G)
-    optimizer_D = optim.Adam(Discriminator.parameters(), lr = arg.lr_D)
+    optimizer_G = optim.Adam(Generator.parameters(),lr=arg.lr)
+    
+    #####################
+    ### Loss Function ###
+    #####################
+    
+    criterion_GAN = nn.MSELoss()
+    criterion_L1 = nn.L1Loss()
     
     ################
     ### Training ###
@@ -189,12 +164,9 @@ def main():
     logger.info("Start Training")
     epochs = arg.epochs if arg.train_f else 0
     
-    min_accuracy = 0
-    correct_label, correct_pose , ave_loss = 0, 0, 0
-    
+    min_accuracy = 0    
     for epoch in xrange(epochs):
         Generator.train()
-        Discriminator.train()
         
         
         for batchIndex,(img,target) in enumerate(dataLoader['train']):
@@ -207,44 +179,13 @@ def main():
             # Train Generator
             # ---------------
             optimizer_G.zero_grad()
-            
             gen_img = Generator(img)
-            pred_fake = Discriminator(img)
-            
-            patch = pred_fake.shape
-            v = torch.rand(*patch)*0.1
-            f = 1-v
-            if arg.useGPU_f:
-                valid, fake = Variable(v.cuda(), requires_grad=False), Variable(f.cuda(), requires_grad=False)
-            else:
-                valid, fake = Variable(v, requires_grad=False), Variable(f, requires_grad=False)            
-            
-            loss_GAN = criterion_GAN(pred_fake,valid)
-            if gen_img.data.shape[1]!=target.data.shape[1]:
-                print('L1 ERROR')
-            loss_Pix = criterion_L1(gen_img,target)
-            
-            loss_G = loss_GAN + loss_Pix*arg.lambda_pixel
+            loss_G = criterion_L1(gen_img,target)
             loss_G.backward()
             optimizer_G.step()
             
-            # -------------------
-            # Train Discriminator
-            # -------------------
-            optimizer_D.zero_grad()
-            
-            pred_real = Discriminator(target)
-            loss_real = criterion_GAN(pred_real,valid)
-            
-            pred_fake = Discriminator(gen_img.detach())
-            loss_fake = criterion_GAN(pred_fake,fake)
-            
-            loss_D = 0.5*(loss_real+loss_fake)
-            loss_D.backward()
-            optimizer_D.step()
-            
             if batchIndex%10==0:
-                logger.info('epoch:{}, index:{}, G_Loss:{}, D_Loss:{}'.format(epoch,batchIndex,loss_G.data[0],loss_D.data[0]))
+                logger.info('epoch:{}, index:{}, G_Loss:{}'.format(epoch,batchIndex,loss_G.data[0]))
                 
         ##################
         ### Validation ###
@@ -254,8 +195,7 @@ def main():
         logger.info("Start Validation")
         
         Generator.eval()
-        Discriminator.eval()
-        loss_G, loss_D = 0.0, 0.0
+        loss_G = 0.0
         
         for batchIndex,(img,target) in enumerate(dataLoader['test']):
             if arg.useGPU_f:
@@ -264,21 +204,17 @@ def main():
                 img,target = Variable(img,requires_grad=True),Variable(target,requires_grad=False)
             
             optimizer_G.zero_grad()
-            optimizer_D.zero_grad()
             
             gen_img = Generator(img)
-            torch.save(Generator.state_dict(), Generator_path)
-            torch.save(Discriminator.state_dict(), Discriminator_path)
-            
-            scipy.misc.imsave('log/'+arg.D_net+'_'+arg.Loader+'/gen_images/gen_img_'+str(epoch)+'_'+str(batchIndex)+'.jpg',np.transpose(np.squeeze(gen_img.data.cpu().numpy()),[1,2,0]))
-            if batchIndex == 3:
+            torch.save(Generator.state_dict(), Generator_path)            
+            scipy.misc.imsave('log/UNet/gen_images/gen_img_'+str(epoch)+'_'+str(batchIndex)+'.jpg',np.transpose(np.squeeze(gen_img.data.cpu().numpy()),[1,2,0]))
+            if batchIndex == 2:
                 break
                 
     if os.path.isfile(Generator_path):
         Generator.load_state_dict(torch.load(Generator_path, map_location=lambda storage, loc: storage))
     Generator.eval()
-    Discriminator.eval()
-    loss_G, loss_D = 0.0, 0.0
+    loss_G = 0.0
         
     for batchIndex,(img,target) in enumerate(dataLoader['test']):
         if arg.useGPU_f:
@@ -287,10 +223,9 @@ def main():
             img,target = Variable(img,requires_grad=True),Variable(target,requires_grad=False)
             
         optimizer_G.zero_grad()
-        optimizer_D.zero_grad()
         
         gen_img = Generator(img)
-        scipy.misc.imsave('log/'+arg.D_net+'_'+arg.Loader+'/gen_images/gen_img_test.jpg', np.transpose(np.squeeze(gen_img.data.cpu().numpy()),[1,2,0]))
+        scipy.misc.imsave('log/UNet/gen_images/gen_img_test.jpg', np.transpose(np.squeeze(gen_img.data.cpu().numpy()),[1,2,0]))
         if batchIndex == 1:
             break
 

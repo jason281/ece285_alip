@@ -1,0 +1,32 @@
+2018-12-09 13:23:48,167 - netlog - INFO - ================================================
+2018-12-09 13:23:48,167 - netlog - INFO - Generator Learning Rate: 0.0001
+2018-12-09 13:23:48,168 - netlog - INFO - Discriminator Learning Rate: 0.0001
+2018-12-09 13:23:48,168 - netlog - INFO - Discriminator: NLayer
+2018-12-09 13:23:48,168 - netlog - INFO - target images:segmented
+2018-12-09 13:23:48,168 - netlog - INFO - Nbr of Epochs: 1
+2018-12-09 13:23:51,257 - netlog - INFO - Start Training
+2018-12-09 13:23:53,855 - netlog - INFO - epoch:0, index:0, G_Loss:34.163898468, D_Loss:0.697754561901
+2018-12-09 13:24:05,821 - netlog - INFO - epoch:0, index:10, G_Loss:23.9772872925, D_Loss:0.504311084747
+2018-12-09 13:24:16,790 - netlog - INFO - epoch:0, index:20, G_Loss:20.9411964417, D_Loss:0.403577685356
+2018-12-09 13:24:25,551 - netlog - INFO - epoch:0, index:30, G_Loss:20.6173706055, D_Loss:0.31965175271
+2018-12-09 13:24:34,255 - netlog - INFO - epoch:0, index:40, G_Loss:21.1430835724, D_Loss:0.287868440151
+2018-12-09 13:24:50,403 - netlog - INFO - epoch:0, index:60, G_Loss:32.7952346802, D_Loss:0.223740845919
+2018-12-09 13:25:02,700 - netlog - INFO - epoch:0, index:70, G_Loss:30.9993133545, D_Loss:0.206012934446
+2018-12-09 13:25:07,704 - netlog - INFO - epoch:0, index:80, G_Loss:19.6853790283, D_Loss:0.204917415977
+2018-12-09 13:25:19,321 - netlog - INFO - epoch:0, index:90, G_Loss:19.4402618408, D_Loss:0.202744841576
+2018-12-09 13:25:29,576 - netlog - INFO - epoch:0, index:100, G_Loss:20.8853683472, D_Loss:0.200724080205
+2018-12-09 13:25:45,716 - netlog - INFO - epoch:0, index:110, G_Loss:24.0272254944, D_Loss:0.200033605099
+2018-12-09 13:25:52,974 - netlog - INFO - epoch:0, index:120, G_Loss:18.0865116119, D_Loss:0.201993882656
+2018-12-09 13:25:59,418 - netlog - INFO - epoch:0, index:130, G_Loss:21.0776081085, D_Loss:0.20114761591
+2018-12-09 13:26:09,763 - netlog - INFO - epoch:0, index:140, G_Loss:17.9641723633, D_Loss:0.199523836374
+2018-12-09 13:26:18,102 - netlog - INFO - epoch:0, index:150, G_Loss:18.2062606812, D_Loss:0.198182165623
+2018-12-09 13:26:25,935 - netlog - INFO - epoch:0, index:160, G_Loss:16.4247322083, D_Loss:0.201289415359
+2018-12-09 13:26:35,261 - netlog - INFO - epoch:0, index:170, G_Loss:17.759016037, D_Loss:0.200365528464
+2018-12-09 13:26:45,103 - netlog - INFO - epoch:0, index:180, G_Loss:20.9733486176, D_Loss:0.199416086078
+2018-12-09 13:26:55,586 - netlog - INFO - epoch:0, index:190, G_Loss:23.5140857697, D_Loss:0.199608758092
+2018-12-09 13:27:04,661 - netlog - INFO - epoch:0, index:200, G_Loss:17.674041748, D_Loss:0.199619293213
+2018-12-09 13:27:11,368 - netlog - INFO - epoch:0, index:210, G_Loss:16.1692409515, D_Loss:0.198640614748
+2018-12-09 13:27:19,123 - netlog - INFO - epoch:0, index:220, G_Loss:20.3571300507, D_Loss:0.199857458472
+2018-12-09 13:27:27,492 - netlog - INFO - epoch:0, index:230, G_Loss:20.3425292969, D_Loss:0.200305730104
+2018-12-09 13:27:35,899 - netlog - INFO - epoch:0, index:240, G_Loss:29.9656772614, D_Loss:0.198936104774
+2018-12-09 13:27:45,716 - netlog - INFO - epoch:0, index:250, G_Loss:15.8957767487, D_Loss:0.200286641717
