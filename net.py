@@ -254,12 +254,11 @@ def main():
             
             if batchIndex%10==0:
                 logger.info('epoch:{}, index:{}, G_Loss:{}, D_Loss:{}'.format(epoch,batchIndex,loss_G.data[0],loss_D.data[0]))
-                
+                torch.save(Generator.state_dict(), Generator_path)
+                torch.save(Discriminator.state_dict(), Discriminator_path)
         ##################
         ### Validation ###
         ##################
-        torch.save(Generator.state_dict(), Generator_path)
-        torch.save(Discriminator.state_dict(), Discriminator_path)
         
         print("Start Validation")
         logger.info("Start Validation")
@@ -281,8 +280,7 @@ def main():
             
             scipy.misc.imsave(log_root+'/gen_images/gen_img_'+str(epoch)+'_'+str(batchIndex)+'.jpg',\
                               np.transpose(np.squeeze(gen_img.data.cpu().numpy()),[1,2,0]))
-            if batchIndex == 3:
-                break
+            break
                 
     best_model = 10
     Generator_path = log_root+'/model/Generator_'+str(best_model)+'.pt'
