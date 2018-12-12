@@ -4,6 +4,8 @@ from PIL import Image
 import os
 from tqdm import tqdm
 import numpy as np
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class DRLoader(Dataset):
     def __init__(self, input_dir, target_dir, in_transform=None, target_transform=None):

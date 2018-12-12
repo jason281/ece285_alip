@@ -111,6 +111,8 @@ class UNet(nn.Module):
 ### DISCRIMINATOR ###
 #####################
 
+#https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix
+
 class PixelDiscriminator(nn.Module):
     def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm2d, use_sigmoid=False):
         super(PixelDiscriminator, self).__init__()
