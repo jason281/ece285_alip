@@ -14,3 +14,6 @@ Run the "blender_renderer.ipynb"
 
 ## Segementing the foreground and background Images
 Run the "background_segementation.ipynb"
+
+## Demo
+Run the "Demo.ipynb"
