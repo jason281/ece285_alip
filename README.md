@@ -17,3 +17,4 @@ Run the "background_segementation.ipynb"
 
 ## Demo
 Run the "Demo.ipynb"
+The pretrained weight is stored in "Demo_Generator.pt"
