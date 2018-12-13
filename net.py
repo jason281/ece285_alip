@@ -254,8 +254,9 @@ def main():
             
             if batchIndex%10==0:
                 logger.info('epoch:{}, index:{}, G_Loss:{}, D_Loss:{}'.format(epoch,batchIndex,loss_G.data[0],loss_D.data[0]))
-                torch.save(Generator.state_dict(), Generator_path)
-                torch.save(Discriminator.state_dict(), Discriminator_path)
+        if epoch%10==0:
+            torch.save(Generator.state_dict(), Generator_path)
+            torch.save(Discriminator.state_dict(), Discriminator_path)
         ##################
         ### Validation ###
         ##################
