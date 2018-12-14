@@ -20,7 +20,7 @@ Run the "Demo.ipynb"
 The pretrained weight is stored in "Demo_Generator.pt"
 
 ## Train the network
-The deafult configuration is using NLayer discriminator and MSE Loss.  
+The deafult configuration is using Patch (NLayer) discriminator and MSE Loss.  
 To train the network, simply use
 > python net.py
 
